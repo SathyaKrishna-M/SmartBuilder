@@ -237,66 +237,70 @@ export function QuestionCard({
 
       {/* Answer Content */}
       <AnimatePresence>
-        {isExpanded && question.answer && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                {question.answer.title}
-              </h3>
-              <div className="space-y-4">
-                {Object.entries(question.answer.sections).map(
-                  ([sectionName, sectionContent]) => {
-                    // Check if content starts with a heading - if so, render without section wrapper
-                    const hasHeading = sectionContent.trim().match(/^#+\s+/m);
-                    const isSingleSection = Object.keys(question.answer.sections).length === 1;
-                    
-                    // If it's a single section with its own headings, render directly
-                    if (isSingleSection && hasHeading) {
+        {isExpanded && question.answer && (() => {
+          const answer = question.answer;
+          return (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  {answer.title}
+                </h3>
+                <div className="space-y-4">
+                  {Object.entries(answer.sections).map(
+                    ([sectionName, sectionContent]) => {
+                      // Check if content starts with a heading - if so, render without section wrapper
+                      const hasHeading = sectionContent.trim().match(/^#+\s+/m);
+                      const answerSections = answer.sections;
+                      const isSingleSection = Object.keys(answerSections).length === 1;
+                      
+                      // If it's a single section with its own headings, render directly
+                      if (isSingleSection && hasHeading) {
+                        return (
+                          <motion.div
+                            key={sectionName}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                          >
+                            <div className="text-gray-700 dark:text-gray-300">
+                              <MarkdownRenderer content={sectionContent} />
+                            </div>
+                          </motion.div>
+                        );
+                      }
+                      
+                      // Otherwise, show with section wrapper
                       return (
                         <motion.div
                           key={sectionName}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
+                          className="border-l-4 border-blue-500 pl-4"
                         >
+                          <div className="flex items-center gap-2 mb-2">
+                            {sectionIcons[sectionName] || (
+                              <FileText className="w-4 h-4" />
+                            )}
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                              {sectionName}
+                            </h4>
+                          </div>
                           <div className="text-gray-700 dark:text-gray-300">
                             <MarkdownRenderer content={sectionContent} />
                           </div>
                         </motion.div>
                       );
                     }
-                    
-                    // Otherwise, show with section wrapper
-                    return (
-                      <motion.div
-                        key={sectionName}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="border-l-4 border-blue-500 pl-4"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          {sectionIcons[sectionName] || (
-                            <FileText className="w-4 h-4" />
-                          )}
-                          <h4 className="font-semibold text-gray-800 dark:text-gray-200">
-                            {sectionName}
-                          </h4>
-                        </div>
-                        <div className="text-gray-700 dark:text-gray-300">
-                          <MarkdownRenderer content={sectionContent} />
-                        </div>
-                      </motion.div>
-                    );
-                  }
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </motion.div>
   );

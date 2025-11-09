@@ -162,53 +162,58 @@ export default function SharePage() {
                       {question.text}
                     </h2>
                   </div>
-                  {question.answer && (
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                        {question.answer.title}
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.entries(question.answer.sections).map(
-                          ([sectionName, sectionContent]) => {
-                            // Check if content starts with a heading - if so, render without section wrapper
-                            const hasHeading = sectionContent.trim().match(/^#+\s+/m);
-                            const isSingleSection = Object.keys(question.answer.sections).length === 1;
+                  {(() => {
+                    if (!question.answer) return null;
+                    const answer = question.answer;
+                    return (
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                          {answer.title}
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(answer.sections).map(
+                            ([sectionName, sectionContent]) => {
+                              // Check if content starts with a heading - if so, render without section wrapper
+                              const hasHeading = sectionContent.trim().match(/^#+\s+/m);
+                              const answerSections = answer.sections;
+                              const isSingleSection = Object.keys(answerSections).length === 1;
                             
-                            // If it's a single section with its own headings, render directly
-                            if (isSingleSection && hasHeading) {
+                              // If it's a single section with its own headings, render directly
+                              if (isSingleSection && hasHeading) {
+                                return (
+                                  <div key={sectionName}>
+                                    <div className="text-gray-700 dark:text-gray-300">
+                                      <MarkdownRenderer content={sectionContent} />
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              
+                              // Otherwise, show with section wrapper
                               return (
-                                <div key={sectionName}>
+                                <div
+                                  key={sectionName}
+                                  className="border-l-4 border-blue-500 pl-4"
+                                >
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {sectionIcons[sectionName] || (
+                                      <FileText className="w-4 h-4" />
+                                    )}
+                                    <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                                      {sectionName}
+                                    </h4>
+                                  </div>
                                   <div className="text-gray-700 dark:text-gray-300">
                                     <MarkdownRenderer content={sectionContent} />
                                   </div>
                                 </div>
                               );
                             }
-                            
-                            // Otherwise, show with section wrapper
-                            return (
-                              <div
-                                key={sectionName}
-                                className="border-l-4 border-blue-500 pl-4"
-                              >
-                                <div className="flex items-center gap-2 mb-2">
-                                  {sectionIcons[sectionName] || (
-                                    <FileText className="w-4 h-4" />
-                                  )}
-                                  <h4 className="font-semibold text-gray-800 dark:text-gray-200">
-                                    {sectionName}
-                                  </h4>
-                                </div>
-                                <div className="text-gray-700 dark:text-gray-300">
-                                  <MarkdownRenderer content={sectionContent} />
-                                </div>
-                              </div>
-                            );
-                          }
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </motion.div>
               ))}
             </div>

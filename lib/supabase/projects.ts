@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { Project } from '@/types';
 import type { User } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
 export interface ProjectRow {
   id: string;
@@ -11,18 +12,34 @@ export interface ProjectRow {
   updated_at: string;
 }
 
+// Type guard to check if data is a valid Project
+function isValidProject(data: unknown): data is Project {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'title' in data &&
+    'questions' in data &&
+    Array.isArray((data as Project).questions)
+  );
+}
+
 export async function saveProjectToCloud(userId: string, project: Project): Promise<void> {
-  const { error } = await supabase
+  // Convert Project to Json type for Supabase
+  const projectData = {
+    id: project.id,
+    user_id: userId,
+    name: project.title,
+    data: project as unknown as Database['public']['Tables']['projects']['Row']['data'],
+    updated_at: new Date().toISOString(),
+  };
+
+  // Use type assertion to bypass strict typing for upsert
+  const { error } = await (supabase
     .from('projects')
-    .upsert({
-      id: project.id,
-      user_id: userId,
-      name: project.title,
-      data: project as any,
-      updated_at: new Date().toISOString(),
-    }, {
+    .upsert(projectData as any, {
       onConflict: 'id',
-    });
+    }) as any);
 
   if (error) {
     console.error('Error saving project to cloud:', error);
@@ -42,16 +59,37 @@ export async function loadProjectsFromCloud(userId: string): Promise<Project[]> 
     return [];
   }
 
+  if (!data || !Array.isArray(data)) {
+    return [];
+  }
+
   // Map database rows to Project objects
   // Use row.id as the source of truth for the project ID
-  return (data || []).map((row: ProjectRow) => {
-    const project = row.data as Project;
-    // Ensure the project ID matches the database row ID
-    return {
-      ...project,
-      id: row.id, // Use the row ID (UUID) as the source of truth
-    };
-  });
+  return data
+    .map((row: unknown): Project | null => {
+      // Type guard to ensure row is ProjectRow
+      if (
+        typeof row === 'object' &&
+        row !== null &&
+        'id' in row &&
+        'data' in row &&
+        'name' in row
+      ) {
+        const projectRow = row as ProjectRow;
+        const projectData = projectRow.data;
+        
+        // Validate that data is a valid Project
+        if (isValidProject(projectData)) {
+          return {
+            ...projectData,
+            id: projectRow.id, // Use the row ID (UUID) as the source of truth
+          };
+        }
+      }
+      console.warn('Invalid project data in database row:', row);
+      return null;
+    })
+    .filter((project): project is Project => project !== null);
 }
 
 export async function deleteProjectFromCloud(projectId: string): Promise<void> {
@@ -69,19 +107,21 @@ export async function deleteProjectFromCloud(projectId: string): Promise<void> {
 export async function syncProjectsToCloud(userId: string, projects: Project[]): Promise<void> {
   if (projects.length === 0) return;
 
+  // Convert Projects to Json type for Supabase
   const projectsToSync = projects.map(project => ({
     id: project.id,
     user_id: userId,
     name: project.title,
-    data: project,
+    data: project as unknown as Database['public']['Tables']['projects']['Row']['data'],
     updated_at: new Date(project.updatedAt).toISOString(),
   }));
 
-  const { error } = await supabase
+  // Use type assertion to bypass strict typing for upsert
+  const { error } = await (supabase
     .from('projects')
-    .upsert(projectsToSync, {
+    .upsert(projectsToSync as any, {
       onConflict: 'id',
-    });
+    }) as any);
 
   if (error) {
     console.error('Error syncing projects to cloud:', error);

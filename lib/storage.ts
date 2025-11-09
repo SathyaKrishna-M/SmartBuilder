@@ -190,10 +190,12 @@ export async function reorderQuestions(
     throw new Error("Project not found");
   }
   
-  const questionMap = new Map(project.questions.map((q) => [q.id, q]));
-  project.questions = questionIds
+  const questionMap = new Map<string, Question>(project.questions.map((q) => [q.id, q]));
+  const reorderedQuestions: Question[] = questionIds
     .map((id) => questionMap.get(id))
     .filter((q): q is Question => q !== undefined);
+  
+  project.questions = reorderedQuestions;
   project.updatedAt = Date.now();
   await saveProject(project);
 }

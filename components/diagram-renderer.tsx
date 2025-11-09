@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import ReactFlow, { Background, Controls, MiniMap, Node, Edge } from "reactflow";
 import "reactflow/dist/style.css";
 import LogicGateNode from "./logic-nodes/LogicGateNode";
+import { DiagramGraph, DiagramNode, DiagramEdge } from "@/types";
 
 const nodeTypes = {
   logicGate: LogicGateNode,
@@ -15,13 +16,17 @@ interface DiagramRendererProps {
 }
 
 export default function DiagramRenderer({ json, className = "" }: DiagramRendererProps) {
-  const { nodes, edges } = useMemo(() => {
+  const graph: DiagramGraph = useMemo(() => {
     try {
-      const parsed = JSON.parse(json);
-      return {
-        nodes: (parsed.nodes || []) as Node[],
-        edges: (parsed.edges || []) as Edge[],
-      };
+      const parsed = JSON.parse(json) as DiagramGraph;
+      // Validate structure
+      if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
+        return {
+          nodes: parsed.nodes || [],
+          edges: parsed.edges || [],
+        };
+      }
+      return { nodes: [], edges: [] };
     } catch (err) {
       console.error("[DiagramRenderer] Invalid diagram JSON:", err);
       console.error("[DiagramRenderer] JSON string:", json);
@@ -31,16 +36,16 @@ export default function DiagramRenderer({ json, className = "" }: DiagramRendere
 
   // Format nodes to use our custom node type
   const formattedNodes = useMemo(() => {
-    return nodes.map((n: any) => {
+    return graph.nodes.map((n: DiagramNode): Node => {
       // All nodes use the logicGate type, which handles rendering based on label
       return {
         ...n,
         type: "logicGate",
       };
     });
-  }, [nodes]);
+  }, [graph.nodes]);
 
-  if (nodes.length === 0 || edges.length === 0) {
+  if (graph.nodes.length === 0 || graph.edges.length === 0) {
     return (
       <div className={`my-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg ${className}`}>
         <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-2">
@@ -58,11 +63,18 @@ export default function DiagramRenderer({ json, className = "" }: DiagramRendere
     );
   }
 
+  // Convert DiagramEdge to ReactFlow Edge
+  const reactFlowEdges: Edge[] = graph.edges.map((e: DiagramEdge): Edge => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+  }));
+
   return (
     <div className={`my-6 h-[500px] w-full bg-gray-900 rounded-lg border border-gray-700 overflow-hidden ${className}`}>
       <ReactFlow
         nodes={formattedNodes}
-        edges={edges}
+        edges={reactFlowEdges}
         nodeTypes={nodeTypes}
         fitView
         className="bg-gray-900"

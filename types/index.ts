@@ -18,3 +18,28 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface DiagramNode {
+  id: string;
+  type?: string;
+  data: {
+    label: string;
+    [key: string]: any;
+  };
+  position: {
+    x: number;
+    y: number;
+  };
+}
+
+export interface DiagramEdge {
+  id: string;
+  source: string;
+  target: string;
+  [key: string]: any;
+}
+
+export interface DiagramGraph {
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
+}

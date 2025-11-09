@@ -1,6 +1,6 @@
 import { Project } from '@/types';
-import { getAllProjects, saveProject } from '../storage';
-import { loadProjectsFromCloud, saveProjectToCloud, syncProjectsToCloud } from './projects';
+import { getAllProjects } from '../storage';
+import { loadProjectsFromCloud, syncProjectsToCloud } from './projects';
 import type { User } from '@supabase/supabase-js';
 
 const STORAGE_KEY = 'knowspark_projects';
@@ -41,7 +41,7 @@ export function mergeProjects(localProjects: Project[], cloudProjects: Project[]
 export async function syncLocalWithCloud(userId: string): Promise<SyncResult> {
   if (!userId) {
     // If no user ID, just return local projects
-    const localProjects = getAllProjects();
+    const localProjects = await getAllProjects();
     return {
       merged: localProjects,
       localCount: localProjects.length,
@@ -52,7 +52,7 @@ export async function syncLocalWithCloud(userId: string): Promise<SyncResult> {
 
   try {
     // Load from both sources
-    const localProjects = getAllProjects();
+    const localProjects = await getAllProjects();
     let cloudProjects: Project[] = [];
     
     try {
@@ -88,7 +88,7 @@ export async function syncLocalWithCloud(userId: string): Promise<SyncResult> {
   } catch (error) {
     console.error('Error syncing projects:', error);
     // On error, return local projects as fallback
-    const localProjects = getAllProjects();
+    const localProjects = await getAllProjects();
     return {
       merged: localProjects,
       localCount: localProjects.length,

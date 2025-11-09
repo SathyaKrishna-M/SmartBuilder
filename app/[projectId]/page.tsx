@@ -257,15 +257,17 @@ export default function ProjectPage() {
       const scrollContainer = document.getElementById('main-scroll-container') as HTMLElement;
       if (!scrollContainer) return;
 
-      const questionElements = project.questions
+      interface QuestionElement {
+        id: string;
+        element: HTMLElement;
+      }
+
+      const questionElements: QuestionElement[] = project.questions
         .map((q) => ({
           id: q.id,
           element: document.getElementById(`question-${q.id}`),
         }))
-        .filter((item) => item.element !== null) as Array<{
-        id: string;
-        element: HTMLElement;
-      }>;
+        .filter((item): item is QuestionElement => item.element !== null);
 
       if (questionElements.length === 0) return;
 
@@ -273,9 +275,13 @@ export default function ProjectPage() {
       const viewportCenter = containerRect.top + containerRect.height / 2;
 
       // Find the question closest to the viewport center
-      let closestQuestion: { id: string; distance: number } | null = null;
+      interface ClosestQuestion {
+        id: string;
+        distance: number;
+      }
+      let closestQuestion: ClosestQuestion | null = null;
 
-      questionElements.forEach(({ id, element }) => {
+      for (const { id, element } of questionElements) {
         const rect = element.getBoundingClientRect();
         const elementCenter = rect.top + rect.height / 2;
         const distance = Math.abs(elementCenter - viewportCenter);
@@ -283,9 +289,9 @@ export default function ProjectPage() {
         if (!closestQuestion || distance < closestQuestion.distance) {
           closestQuestion = { id, distance };
         }
-      });
+      }
 
-      if (closestQuestion) {
+      if (closestQuestion !== null) {
         setActiveQuestionId(closestQuestion.id);
       }
     };

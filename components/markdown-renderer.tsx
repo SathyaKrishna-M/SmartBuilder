@@ -177,13 +177,24 @@ export default function MarkdownRenderer({
       );
     }
 
-    const parts: Array<{ type: "markdown" | "diagram"; content?: string; json?: string; diagramIndex?: number }> = [];
+    interface RenderPart {
+      type: "markdown" | "diagram";
+      content?: string;
+      json?: string;
+      diagramIndex?: number;
+    }
+    const parts: RenderPart[] = [];
 
     // Split by diagram placeholders and create parts
     const placeholderRegex = /__DIAGRAM_(\d+)__/g;
     let lastIndex = 0;
     let match;
-    const matches: Array<{ index: number; position: number; diagramIdx: number }> = [];
+    interface MatchInfo {
+      index: number;
+      position: number;
+      diagramIdx: number;
+    }
+    const matches: MatchInfo[] = [];
 
     // Find all placeholder positions
     while ((match = placeholderRegex.exec(parsedContent.markdown)) !== null) {
