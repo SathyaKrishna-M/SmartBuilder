@@ -91,11 +91,17 @@ export function QuestionsSidebar({
     setReorderItems(questions);
   }, [questions]);
 
-  const handleReorder = (newOrder: Question[]) => {
+  const handleReorder = async (newOrder: Question[]) => {
     setReorderItems(newOrder);
     const questionIds = newOrder.map((q) => q.id);
-    reorderQuestions(projectId, questionIds);
-    onQuestionsReorder();
+    try {
+      await reorderQuestions(projectId, questionIds);
+      onQuestionsReorder();
+    } catch (error) {
+      console.error("Error reordering questions:", error);
+      // Revert to original order on error
+      setReorderItems(questions);
+    }
   };
 
   if (questions.length === 0) {

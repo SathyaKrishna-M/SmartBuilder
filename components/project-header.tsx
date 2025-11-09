@@ -4,6 +4,7 @@ import { Share2, Moon, Sun, Home } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { AuthButton } from "@/components/auth/auth-button";
 
 interface ProjectHeaderProps {
   projectTitle: string;
@@ -66,6 +67,8 @@ export function ProjectHeader({
             <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           )}
         </motion.button>
+
+        <AuthButton />
       </div>
     </div>
   );

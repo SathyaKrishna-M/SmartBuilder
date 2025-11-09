@@ -265,3 +265,64 @@ body {
 .prose hr {
   @apply border-gray-300 dark:border-gray-700 my-8;
 }
+
+/* React Flow Diagram Styles */
+.react-flow {
+  background-color: transparent;
+}
+
+.react-flow__node {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.react-flow__node-input,
+.react-flow__node-output {
+  @apply bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700;
+}
+
+.react-flow__edge {
+  @apply stroke-gray-400 dark:stroke-gray-500;
+  stroke-width: 2;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__controls {
+  @apply bg-gray-800 border-gray-700 shadow-lg;
+}
+
+.react-flow__controls-button {
+  @apply bg-gray-800 border-gray-700 text-gray-300;
+  border: 1px solid #374151;
+}
+
+.react-flow__controls-button:hover {
+  @apply bg-gray-700 text-gray-100;
+}
+
+.react-flow__minimap {
+  @apply bg-gray-800 border border-gray-700;
+  border-radius: 8px;
+}
+
+/* Gate icon styles */
+.gate-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.input-node,
+.output-node {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Custom handle styles */
+.react-flow__handle {
+  transition: all 0.2s ease;
+}
+
+.react-flow__handle:hover {
+  width: 14px;
+  height: 14px;
+}

@@ -19,6 +19,8 @@ import { QuestionsSidebar } from "@/components/questions-sidebar";
 import { ProjectHeader } from "@/components/project-header";
 import { QuestionCard } from "@/components/question-card";
 import { QuestionInput } from "@/components/question-input";
+import { useAuth } from "@/components/auth/auth-provider";
+import { Loader2 } from "lucide-react";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -29,31 +31,57 @@ export default function ProjectPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [loadingProject, setLoadingProject] = useState(true);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [isProjectSidebarCollapsed, setIsProjectSidebarCollapsed] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
-    loadProject();
-  }, [projectId]);
+  }, []);
 
-  const loadProject = () => {
-    const loadedProject = getProject(projectId);
-    if (!loadedProject) {
-      router.push("/");
+  useEffect(() => {
+    if (!authLoading) {
+      loadProject();
+    }
+  }, [projectId, user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadProject = async () => {
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push("/auth/login");
       return;
     }
-    setProject(loadedProject);
+
+    setLoadingProject(true);
+    try {
+      const loadedProject = await getProject(projectId);
+      if (!loadedProject) {
+        router.push("/");
+        return;
+      }
+      setProject(loadedProject);
+    } catch (error) {
+      console.error("Error loading project:", error);
+      if (error instanceof Error && error.message.includes("Authentication required")) {
+        router.push("/auth/login");
+      } else {
+        router.push("/");
+      }
+    } finally {
+      setLoadingProject(false);
+    }
   };
 
-  const handleSendQuestion = async (questionText: string) => {
-    if (!project) return;
+      const handleSendQuestion = async (questionText: string) => {
+        if (!project) return;
 
-    setIsLoading(true);
-    try {
-      // Add question to project
-      const question = addQuestionToProject(projectId, questionText);
-      loadProject(); // Reload to get the new question
+        setIsLoading(true);
+        try {
+          // Add question to project
+          const question = await addQuestionToProject(projectId, questionText);
+          await loadProject(); // Reload to get the new question
 
       // Generate answer
       const response = await fetch("/api/ask", {
@@ -68,17 +96,17 @@ export default function ProjectPage() {
 
       if (!response.ok) {
         // If error response has an answer structure, use it
-        if (data.sections) {
-          updateQuestionAnswer(projectId, question.id, data as Answer);
-          loadProject();
+            if (data.sections) {
+            await updateQuestionAnswer(projectId, question.id, data as Answer);
+            await loadProject();
+          } else {
+            throw new Error(data.error || "Failed to generate answer");
+          }
         } else {
-          throw new Error(data.error || "Failed to generate answer");
+          const answer: Answer = data;
+          await updateQuestionAnswer(projectId, question.id, answer);
+          await loadProject();
         }
-      } else {
-        const answer: Answer = data;
-        updateQuestionAnswer(projectId, question.id, answer);
-        loadProject();
-      }
     } catch (error) {
       console.error("Error generating answer:", error);
       const errorMessage = error instanceof Error 
@@ -90,15 +118,15 @@ export default function ProjectPage() {
         (q) => q.text === questionText && !q.answer
       );
       if (question) {
-        const errorAnswer: Answer = {
-          id: generateId(),
-          title: "Error",
-          sections: {
-            "Error": errorMessage,
-          },
-        };
-        updateQuestionAnswer(projectId, question.id, errorAnswer);
-        loadProject();
+            const errorAnswer: Answer = {
+              id: generateId(),
+              title: "Error",
+              sections: {
+                "Error": errorMessage,
+              },
+            };
+            await updateQuestionAnswer(projectId, question.id, errorAnswer);
+            loadProject();
       } else {
         alert(errorMessage);
       }
@@ -127,17 +155,17 @@ export default function ProjectPage() {
 
       if (!response.ok) {
         // If error response has an answer structure, use it
-        if (data.sections) {
-          updateQuestionAnswer(projectId, questionId, data as Answer);
-          loadProject();
+            if (data.sections) {
+            await updateQuestionAnswer(projectId, questionId, data as Answer);
+            await loadProject();
+          } else {
+            throw new Error(data.error || "Failed to regenerate answer");
+          }
         } else {
-          throw new Error(data.error || "Failed to regenerate answer");
+          const answer: Answer = data;
+          await updateQuestionAnswer(projectId, questionId, answer);
+          await loadProject();
         }
-      } else {
-        const answer: Answer = data;
-        updateQuestionAnswer(projectId, questionId, answer);
-        loadProject();
-      }
     } catch (error) {
       console.error("Error regenerating answer:", error);
       const errorMessage = error instanceof Error 
@@ -145,53 +173,53 @@ export default function ProjectPage() {
         : "Failed to regenerate answer. Please check your API key and try again.";
       
       // Show error as an answer
-      const errorAnswer: Answer = {
-        id: generateId(),
-        title: "Error",
-        sections: {
-          "Error": errorMessage,
-        },
-      };
-      updateQuestionAnswer(projectId, questionId, errorAnswer);
-      loadProject();
+            const errorAnswer: Answer = {
+              id: generateId(),
+              title: "Error",
+              sections: {
+                "Error": errorMessage,
+              },
+            };
+            await updateQuestionAnswer(projectId, questionId, errorAnswer);
+            await loadProject();
     } finally {
       setRegeneratingId(null);
     }
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
-    if (confirm("Are you sure you want to delete this question?")) {
-      deleteQuestion(projectId, questionId);
-      loadProject();
-    }
-  };
+      const handleDeleteQuestion = async (questionId: string) => {
+        if (confirm("Are you sure you want to delete this question?")) {
+          await deleteQuestion(projectId, questionId);
+          await loadProject();
+        }
+      };
 
-  const handleEditQuestion = (questionId: string, newText: string) => {
-    updateQuestionText(projectId, questionId, newText);
-    loadProject();
-  };
+      const handleEditQuestion = async (questionId: string, newText: string) => {
+        await updateQuestionText(projectId, questionId, newText);
+        await loadProject();
+      };
 
-  const handleMoveQuestion = (questionId: string, direction: "up" | "down") => {
-    if (!project) return;
+      const handleMoveQuestion = async (questionId: string, direction: "up" | "down") => {
+        if (!project) return;
 
-    const currentIndex = project.questions.findIndex((q) => q.id === questionId);
-    if (currentIndex === -1) return;
+        const currentIndex = project.questions.findIndex((q) => q.id === questionId);
+        if (currentIndex === -1) return;
 
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= project.questions.length) return;
+        const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+        if (newIndex < 0 || newIndex >= project.questions.length) return;
 
-    const newOrder = [...project.questions];
-    [newOrder[currentIndex], newOrder[newIndex]] = [
-      newOrder[newIndex],
-      newOrder[currentIndex],
-    ];
+        const newOrder = [...project.questions];
+        [newOrder[currentIndex], newOrder[newIndex]] = [
+          newOrder[newIndex],
+          newOrder[currentIndex],
+        ];
 
-    reorderQuestions(
-      projectId,
-      newOrder.map((q) => q.id)
-    );
-    loadProject();
-  };
+        await reorderQuestions(
+          projectId,
+          newOrder.map((q) => q.id)
+        );
+        await loadProject();
+      };
 
   const handleQuestionClick = (questionId: string) => {
     setActiveQuestionId(questionId);
@@ -280,11 +308,32 @@ export default function ProjectPage() {
     };
   }, [project]);
 
-  if (!mounted) {
+  if (!mounted || authLoading || loadingProject) {
     return (
       <ThemeProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  if (!user) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-500 dark:text-gray-400 mb-4">Please sign in to view this project</p>
+            <button
+              onClick={() => router.push("/auth/login")}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Sign In
+            </button>
+          </div>
         </div>
       </ThemeProvider>
     );

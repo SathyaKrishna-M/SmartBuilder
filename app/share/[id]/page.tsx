@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import MarkdownRenderer from "@/components/markdown-renderer";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 const sectionIcons: { [key: string]: React.ReactNode } = {
   Overview: <Lightbulb className="w-4 h-4" />,
@@ -27,21 +30,69 @@ const sectionIcons: { [key: string]: React.ReactNode } = {
 
 export default function SharePage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.id as string;
+  const { user, loading: authLoading } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    const loadedProject = getProject(projectId);
-    setProject(loadedProject);
-  }, [projectId]);
+  }, []);
 
-  if (!mounted) {
+  useEffect(() => {
+    if (!authLoading) {
+      loadProject();
+    }
+  }, [projectId, user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadProject = async () => {
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const loadedProject = await getProject(projectId);
+      setProject(loadedProject);
+    } catch (error) {
+      console.error("Error loading project:", error);
+      setProject(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!mounted || authLoading || loading) {
     return (
       <ThemeProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  if (!user) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-500 dark:text-gray-400 mb-4">Please sign in to view this project</p>
+            <button
+              onClick={() => router.push("/auth/login")}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Sign In
+            </button>
+          </div>
         </div>
       </ThemeProvider>
     );
@@ -93,7 +144,7 @@ export default function SharePage() {
           {questionsWithAnswers.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-gray-500 dark:text-gray-400">
-                This project doesn't have any answers yet.
+                This project doesn&apos;t have any answers yet.
               </p>
             </div>
           ) : (

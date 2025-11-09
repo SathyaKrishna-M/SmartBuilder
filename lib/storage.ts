@@ -1,57 +1,75 @@
 import { Project, Question, Answer } from "@/types";
 import { generateId } from "@/lib/utils";
+import { getCurrentUser } from "./supabase/auth";
+import {
+  saveProjectToCloud,
+  loadProjectsFromCloud,
+  deleteProjectFromCloud,
+} from "./supabase/projects";
 
-const STORAGE_KEY = "knowspark_projects";
+/**
+ * Check if user is authenticated, throw error if not
+ */
+async function requireAuth(): Promise<string> {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Authentication required. Please sign in to continue.");
+  }
+  return user.id;
+}
 
-export function getAllProjects(): Project[] {
-  if (typeof window === "undefined") return [];
-  
+/**
+ * Get all projects for the current user from Supabase
+ */
+export async function getAllProjects(): Promise<Project[]> {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    const userId = await requireAuth();
+    return await loadProjectsFromCloud(userId);
   } catch (error) {
-    console.error("Error reading projects from localStorage:", error);
+    if (error instanceof Error && error.message.includes("Authentication required")) {
+      // Return empty array if not authenticated
+      return [];
+    }
+    console.error("Error loading projects:", error);
     return [];
   }
 }
 
-export function saveProject(project: Project): void {
-  if (typeof window === "undefined") return;
-  
+/**
+ * Save a project to Supabase
+ */
+export async function saveProject(project: Project): Promise<void> {
+  const userId = await requireAuth();
+  await saveProjectToCloud(userId, project);
+}
+
+/**
+ * Get a single project by ID
+ */
+export async function getProject(id: string): Promise<Project | null> {
   try {
-    const projects = getAllProjects();
-    const index = projects.findIndex((p) => p.id === project.id);
-    
-    if (index >= 0) {
-      projects[index] = project;
-    } else {
-      projects.push(project);
-    }
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+    const projects = await getAllProjects();
+    return projects.find((p) => p.id === id) || null;
   } catch (error) {
-    console.error("Error saving project to localStorage:", error);
+    console.error("Error getting project:", error);
+    return null;
   }
 }
 
-export function getProject(id: string): Project | null {
-  const projects = getAllProjects();
-  return projects.find((p) => p.id === id) || null;
+/**
+ * Delete a project from Supabase
+ */
+export async function deleteProject(id: string): Promise<void> {
+  const userId = await requireAuth();
+  await deleteProjectFromCloud(id);
 }
 
-export function deleteProject(id: string): void {
-  if (typeof window === "undefined") return;
+/**
+ * Create a new project
+ */
+export async function createProject(title: string): Promise<Project> {
+  const userId = await requireAuth();
   
-  try {
-    const projects = getAllProjects();
-    const filtered = projects.filter((p) => p.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-  } catch (error) {
-    console.error("Error deleting project from localStorage:", error);
-  }
-}
-
-export function createProject(title: string): Project {
   const project: Project = {
     id: generateId(),
     title,
@@ -59,15 +77,21 @@ export function createProject(title: string): Project {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
-  saveProject(project);
+  
+  await saveProject(project);
   return project;
 }
 
-export function addQuestionToProject(
+/**
+ * Add a question to a project
+ */
+export async function addQuestionToProject(
   projectId: string,
   questionText: string
-): Question {
-  const project = getProject(projectId);
+): Promise<Question> {
+  await requireAuth();
+  
+  const project = await getProject(projectId);
   if (!project) {
     throw new Error("Project not found");
   }
@@ -81,17 +105,22 @@ export function addQuestionToProject(
   
   project.questions.push(question);
   project.updatedAt = Date.now();
-  saveProject(project);
+  await saveProject(project);
   
   return question;
 }
 
-export function updateQuestionAnswer(
+/**
+ * Update a question's answer
+ */
+export async function updateQuestionAnswer(
   projectId: string,
   questionId: string,
   answer: Answer
-): void {
-  const project = getProject(projectId);
+): Promise<void> {
+  await requireAuth();
+  
+  const project = await getProject(projectId);
   if (!project) {
     throw new Error("Project not found");
   }
@@ -103,26 +132,36 @@ export function updateQuestionAnswer(
   
   question.answer = answer;
   project.updatedAt = Date.now();
-  saveProject(project);
+  await saveProject(project);
 }
 
-export function deleteQuestion(projectId: string, questionId: string): void {
-  const project = getProject(projectId);
+/**
+ * Delete a question from a project
+ */
+export async function deleteQuestion(projectId: string, questionId: string): Promise<void> {
+  await requireAuth();
+  
+  const project = await getProject(projectId);
   if (!project) {
     throw new Error("Project not found");
   }
   
   project.questions = project.questions.filter((q) => q.id !== questionId);
   project.updatedAt = Date.now();
-  saveProject(project);
+  await saveProject(project);
 }
 
-export function updateQuestionText(
+/**
+ * Update a question's text
+ */
+export async function updateQuestionText(
   projectId: string,
   questionId: string,
   text: string
-): void {
-  const project = getProject(projectId);
+): Promise<void> {
+  await requireAuth();
+  
+  const project = await getProject(projectId);
   if (!project) {
     throw new Error("Project not found");
   }
@@ -134,14 +173,19 @@ export function updateQuestionText(
   
   question.text = text;
   project.updatedAt = Date.now();
-  saveProject(project);
+  await saveProject(project);
 }
 
-export function reorderQuestions(
+/**
+ * Reorder questions in a project
+ */
+export async function reorderQuestions(
   projectId: string,
   questionIds: string[]
-): void {
-  const project = getProject(projectId);
+): Promise<void> {
+  await requireAuth();
+  
+  const project = await getProject(projectId);
   if (!project) {
     throw new Error("Project not found");
   }
@@ -151,5 +195,5 @@ export function reorderQuestions(
     .map((id) => questionMap.get(id))
     .filter((q): q is Question => q !== undefined);
   project.updatedAt = Date.now();
-  saveProject(project);
+  await saveProject(project);
 }

@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Folder, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Folder, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Project } from "@/types";
 import { getAllProjects, deleteProject, saveProject, createProject } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface ProjectSidebarProps {
   currentProjectId?: string;
@@ -20,30 +21,72 @@ export function ProjectSidebar({
   onToggleCollapse 
 }: ProjectSidebarProps) {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
   useEffect(() => {
-    setProjects(getAllProjects());
-  }, []);
+    if (!authLoading) {
+      loadProjects();
+    }
+  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCreateProject = () => {
-    const title = prompt("Enter project name:");
-    if (title && title.trim()) {
-      const newProject = createProject(title.trim());
-      setProjects(getAllProjects());
-      router.push(`/${newProject.id}`);
+  const loadProjects = async () => {
+    if (authLoading) return;
+    
+    setLoading(true);
+    try {
+      if (user) {
+        const loadedProjects = await getAllProjects();
+        setProjects(loadedProjects);
+      } else {
+        setProjects([]);
+      }
+    } catch (error) {
+      console.error("Error loading projects:", error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteProject = (id: string, e: React.MouseEvent) => {
+  const handleCreateProject = async () => {
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    const title = prompt("Enter project name:");
+    if (title && title.trim()) {
+      try {
+        const newProject = await createProject(title.trim());
+        await loadProjects();
+        router.push(`/${newProject.id}`);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("Authentication required")) {
+          router.push("/auth/login");
+        } else {
+          alert("Failed to create project. Please try again.");
+          console.error("Error creating project:", error);
+        }
+      }
+    }
+  };
+
+  const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this project?")) {
-      deleteProject(id);
-      setProjects(getAllProjects());
-      if (currentProjectId === id) {
-        router.push("/");
+      try {
+        await deleteProject(id);
+        await loadProjects();
+        if (currentProjectId === id) {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        alert("Failed to delete project. Please try again.");
       }
     }
   };
@@ -54,15 +97,20 @@ export function ProjectSidebar({
     setEditTitle(project.title);
   };
 
-  const handleSaveEdit = (id: string) => {
+  const handleSaveEdit = async (id: string) => {
     const project = projects.find((p) => p.id === id);
     if (project && editTitle.trim()) {
-      project.title = editTitle.trim();
-      project.updatedAt = Date.now();
-      saveProject(project);
-      setProjects(getAllProjects());
-      setEditingId(null);
-      setEditTitle("");
+      try {
+        project.title = editTitle.trim();
+        project.updatedAt = Date.now();
+        await saveProject(project);
+        await loadProjects();
+        setEditingId(null);
+        setEditTitle("");
+      } catch (error) {
+        console.error("Error saving project:", error);
+        alert("Failed to save project. Please try again.");
+      }
     }
   };
 
@@ -134,7 +182,21 @@ export function ProjectSidebar({
               </div>
 
               <div className="flex-1 overflow-y-auto px-2 min-h-0">
-                {projects.length === 0 ? (
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  </div>
+                ) : !user ? (
+                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8 px-4">
+                    <p className="mb-4">Please sign in to view your projects</p>
+                    <button
+                      onClick={() => router.push("/auth/login")}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                ) : projects.length === 0 ? (
                   <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
                     No projects yet. Create one to get started!
                   </div>
