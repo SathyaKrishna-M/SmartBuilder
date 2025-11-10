@@ -7,8 +7,12 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "KnowSpark - Ask smart. Learn beautifully.",
-  description: "AI-powered knowledge workspace",
+  title: "KnowSpark — AI Knowledge Workspace",
+  description: "Intelligent project-based learning assistant with dynamic AI generation.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/assets/branding/logo.svg",
+  },
 };
 
 export default function RootLayout({
