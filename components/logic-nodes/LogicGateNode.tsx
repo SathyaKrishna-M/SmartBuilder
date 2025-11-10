@@ -25,10 +25,10 @@ export default function LogicGateNode({ data, id }: NodeProps) {
   
   if (isInput) {
     Icon = InputNode;
-    nodeColor = "#60a5fa";
+    nodeColor = "#60A5FA"; // Bright blue
   } else if (isOutput) {
     Icon = OutputNode;
-    nodeColor = "#22c55e";
+    nodeColor = "#34D399"; // Bright green
   } else {
     // Gate type
     switch (gateType) {

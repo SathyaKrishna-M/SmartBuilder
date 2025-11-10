@@ -8,15 +8,15 @@ export default function InputNode({ size = 50, label = "" }: { size?: number; la
         cx="50"
         cy="50"
         r="35"
-        fill="#1e3a8a"
-        stroke="#60a5fa"
+        fill="#3B82F6"
+        stroke="#60A5FA"
         strokeWidth="4"
       />
       {displayLabel && (
         <text
           x="50"
           y="58"
-          fill="#60a5fa"
+          fill="#FFFFFF"
           fontSize="24"
           fontWeight="bold"
           textAnchor="middle"

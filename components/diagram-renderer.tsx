@@ -6,9 +6,10 @@ import "reactflow/dist/style.css";
 import LogicGateNode from "./logic-nodes/LogicGateNode";
 import { DiagramGraph, DiagramNode, DiagramEdge } from "@/types";
 
+// Define nodeTypes outside component to prevent React Flow warning
 const nodeTypes = {
   logicGate: LogicGateNode,
-};
+} as const;
 
 interface DiagramRendererProps {
   json: string; // JSON string returned from AI
@@ -84,13 +85,13 @@ export default function DiagramRenderer({ json, className = "" }: DiagramRendere
         <MiniMap
           nodeColor={(node) => {
             const label = (node.data?.label || "").toUpperCase();
-            if (label === "INPUT" || /^[A-Z]$/.test(label)) return "#60a5fa";
-            if (label === "OUTPUT" || label === "F") return "#22c55e";
-            if (label === "AND") return "#3b82f6";
-            if (label === "OR") return "#f59e0b";
-            if (label === "XOR") return "#a855f7";
-            if (label === "NOT") return "#10b981";
-            return "#6b7280";
+            if (label === "INPUT" || /^[A-Z]$/.test(label)) return "#60A5FA"; // Bright blue
+            if (label === "OUTPUT" || label === "F") return "#34D399"; // Bright green
+            if (label === "AND") return "#3B82F6";
+            if (label === "OR") return "#F59E0B";
+            if (label === "XOR") return "#A855F7";
+            if (label === "NOT") return "#10B981";
+            return "#9CA3AF"; // Lighter gray
           }}
           className="bg-gray-800 border border-gray-700"
           maskColor="rgba(0, 0, 0, 0.6)"

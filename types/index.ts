@@ -9,6 +9,7 @@ export interface Question {
   text: string;
   answer: Answer | null;
   createdAt: number;
+  topic?: string; // Optional topic/group name for organizing questions
 }
 
 export interface Project {

@@ -11,16 +11,16 @@ import {
   deleteQuestion,
   updateQuestionText,
   reorderQuestions,
+  updateQuestionTopic,
 } from "@/lib/storage";
 import { generateId } from "@/lib/utils";
-import { ThemeProvider } from "@/components/theme-provider";
 import { ProjectSidebar } from "@/components/project-sidebar";
 import { QuestionsSidebar } from "@/components/questions-sidebar";
 import { ProjectHeader } from "@/components/project-header";
 import { QuestionCard } from "@/components/question-card";
 import { QuestionInput } from "@/components/question-input";
 import { useAuth } from "@/components/auth/auth-provider";
-import { Loader2 } from "lucide-react";
+import { Loader2, Tag } from "lucide-react";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -34,6 +34,7 @@ export default function ProjectPage() {
   const [loadingProject, setLoadingProject] = useState(true);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [isProjectSidebarCollapsed, setIsProjectSidebarCollapsed] = useState(false);
+  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -199,6 +200,11 @@ export default function ProjectPage() {
         await loadProject();
       };
 
+      const handleTopicChange = async (questionId: string, topic: string | undefined) => {
+        await updateQuestionTopic(projectId, questionId, topic);
+        await loadProject();
+      };
+
       const handleMoveQuestion = async (questionId: string, direction: "up" | "down") => {
         if (!project) return;
 
@@ -316,48 +322,43 @@ export default function ProjectPage() {
 
   if (!mounted || authLoading || loadingProject) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Loading...</span>
-          </div>
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center transition-colors duration-500">
+        <div className="flex items-center gap-2 text-gray-400 dark:text-gray-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Loading...</span>
         </div>
-      </ThemeProvider>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">Please sign in to view this project</p>
-            <button
-              onClick={() => router.push("/auth/login")}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Sign In
-            </button>
-          </div>
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center transition-colors duration-500">
+        <div className="text-center">
+          <p className="text-gray-400 dark:text-gray-400 mb-4">Please sign in to view this project</p>
+          <motion.button
+            onClick={() => router.push("/auth/login")}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-6 py-3 bg-gradient-to-r from-brand-electric to-brand-blue hover:from-brand-blue hover:to-[#60A5FA] text-white rounded-lg transition-all duration-300 font-medium shadow-[0_0_10px_rgba(30,64,255,0.3)]"
+          >
+            Sign In
+          </motion.button>
         </div>
-      </ThemeProvider>
+      </div>
     );
   }
 
   if (!project) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-          <div className="text-gray-500 dark:text-gray-400">Project not found</div>
-        </div>
-      </ThemeProvider>
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center transition-colors duration-500">
+        <div className="text-gray-400 dark:text-gray-400">Project not found</div>
+      </div>
     );
   }
 
   return (
-    <ThemeProvider>
-      <div className="h-full w-full bg-gray-50 dark:bg-gray-950 flex overflow-hidden">
+    <div className="h-full w-full bg-background-light dark:bg-background-dark flex overflow-hidden transition-colors duration-500">
         <ProjectSidebar 
           currentProjectId={projectId} 
           isCollapsed={isProjectSidebarCollapsed}
@@ -369,6 +370,8 @@ export default function ProjectPage() {
           activeQuestionId={activeQuestionId}
           onQuestionClick={handleQuestionClick}
           onQuestionsReorder={loadProject}
+          onTopicChange={handleTopicChange}
+          onAvailableTopicsChange={setAvailableTopics}
         />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full">
           <ProjectHeader
@@ -376,37 +379,112 @@ export default function ProjectPage() {
             projectId={projectId}
           />
           <div className="flex-1 overflow-y-auto min-h-0" id="main-scroll-container">
-            <div className="max-w-4xl mx-auto p-6 space-y-6">
+            <div className="max-w-4xl mx-auto px-8 py-6 md:px-12 lg:px-16 space-y-6">
               {project.questions.length === 0 ? (
                 <div className="text-center py-16">
-                  <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
+                  <p className="text-gray-400 dark:text-gray-400 text-lg mb-4">
                     No questions yet. Ask your first question below!
                   </p>
                 </div>
               ) : (
                 <AnimatePresence>
-                  {project.questions.map((question, index) => (
-                    <QuestionCard
-                      key={question.id}
-                      question={question}
-                      onRegenerate={handleRegenerate}
-                      onDelete={handleDeleteQuestion}
-                      onEditQuestion={handleEditQuestion}
-                      onMoveUp={
-                        index > 0
-                          ? () => handleMoveQuestion(question.id, "up")
-                          : undefined
+                  {(() => {
+                    // Group questions by topic
+                    const grouped: Record<string, Question[]> = {
+                      "": [], // Ungrouped questions
+                    };
+                    
+                    project.questions.forEach((q) => {
+                      const topic = q.topic || "";
+                      if (!grouped[topic]) {
+                        grouped[topic] = [];
                       }
-                      onMoveDown={
-                        index < project.questions.length - 1
-                          ? () => handleMoveQuestion(question.id, "down")
-                          : undefined
-                      }
-                      isRegenerating={regeneratingId === question.id}
-                      isActive={activeQuestionId === question.id}
-                      onScrollIntoView={() => handleQuestionClick(question.id)}
-                    />
-                  ))}
+                      grouped[topic].push(q);
+                    });
+
+                    // Get all topics sorted (empty string last)
+                    const topics = Object.keys(grouped).filter(t => t !== "").sort();
+                    const allTopics = [...topics, ""];
+
+                    // Use availableTopics from state (includes pending topics from TopicManager)
+                    // Fallback to topics from questions if state is empty
+                    const topicsForSelector = availableTopics.length > 0 ? availableTopics : topics;
+
+                    return (
+                      <>
+                        {topics.map((topic) => (
+                          <div key={topic} className="space-y-4">
+                            {/* Topic Header */}
+                            <div className="sticky top-0 z-10 bg-background-cardDark/80 dark:bg-background-cardDark/80 backdrop-blur-xl py-3 -mt-6 mb-2 border-b border-border-light dark:border-border-dark">
+                              <div className="flex items-center gap-2">
+                                <Tag className="w-4 h-4 text-purple-400 dark:text-purple-400" />
+                                <h3 className="text-sm font-semibold text-gray-100 dark:text-gray-100">
+                                  {topic}
+                                </h3>
+                                <span className="text-xs text-gray-500 dark:text-gray-500">
+                                  ({grouped[topic].length})
+                                </span>
+                              </div>
+                            </div>
+                            {/* Questions in this topic */}
+                            {grouped[topic].map((question, index) => (
+                              <QuestionCard
+                                key={question.id}
+                                question={question}
+                                onRegenerate={handleRegenerate}
+                                onDelete={handleDeleteQuestion}
+                                onEditQuestion={handleEditQuestion}
+                                onTopicChange={handleTopicChange}
+                                availableTopics={topicsForSelector}
+                                onMoveUp={
+                                  index > 0
+                                    ? () => handleMoveQuestion(question.id, "up")
+                                    : undefined
+                                }
+                                onMoveDown={
+                                  index < grouped[topic].length - 1
+                                    ? () => handleMoveQuestion(question.id, "down")
+                                    : undefined
+                                }
+                                isRegenerating={regeneratingId === question.id}
+                                isActive={activeQuestionId === question.id}
+                                onScrollIntoView={() => handleQuestionClick(question.id)}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                        {/* Ungrouped questions */}
+                        {grouped[""] && grouped[""].length > 0 && (
+                          <div className="space-y-4">
+                            {grouped[""].map((question, index) => (
+                              <QuestionCard
+                                key={question.id}
+                                question={question}
+                                onRegenerate={handleRegenerate}
+                                onDelete={handleDeleteQuestion}
+                                onEditQuestion={handleEditQuestion}
+                                onTopicChange={handleTopicChange}
+                                availableTopics={topicsForSelector}
+                                onMoveUp={
+                                  index > 0
+                                    ? () => handleMoveQuestion(question.id, "up")
+                                    : undefined
+                                }
+                                onMoveDown={
+                                  index < grouped[""].length - 1
+                                    ? () => handleMoveQuestion(question.id, "down")
+                                    : undefined
+                                }
+                                isRegenerating={regeneratingId === question.id}
+                                isActive={activeQuestionId === question.id}
+                                onScrollIntoView={() => handleQuestionClick(question.id)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </AnimatePresence>
               )}
             </div>
@@ -416,6 +494,5 @@ export default function ProjectPage() {
           </div>
         </div>
       </div>
-    </ThemeProvider>
   );
 }

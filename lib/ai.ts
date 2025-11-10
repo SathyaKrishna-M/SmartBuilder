@@ -1,5 +1,6 @@
 import { Answer } from "@/types";
 import { generateId } from "@/lib/utils";
+import { analyzeQuestion } from "./ai/analyze";
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const MODEL = process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.5-flash";
@@ -11,121 +12,75 @@ export async function generateAnswer(question: string): Promise<Answer> {
 
   const url = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${API_KEY}`;
 
-  // ✅ Enhanced prompt for proper LaTeX formatting and React Flow JSON diagrams
-  const prompt = `You are a Boolean logic tutor and circuit diagram generator.
+  // Analyze question to get topic, language, constraints, and structure
+  const analysis = analyzeQuestion(question);
+  const { topic, language, constraints, requiresDiagram, structure } = analysis;
 
-CRITICAL REQUIREMENTS - Your answer MUST include ALL of the following:
+  // 🧠 Universal Tone Rule
+  const toneRules = `You are a concise, professional AI tutor.
+Always provide short, clear, GPT-like answers.
+Avoid unnecessary words, repetition, or academic tone.
+Keep the response well-structured, formatted in Markdown, and under ~180 words unless the question requires more.
+Always wrap the entire answer inside a markdown code block:
 
-1. **Markdown explanation** (overview, truth table, SOP/POS forms)
-2. **Equations** using LaTeX between $ or $$ delimiters  
-3. **A logic circuit diagram** in a valid JSON format - THIS IS MANDATORY
+\`\`\`markdown
+<markdown content here>
+\`\`\``;
 
-⚠️ IMPORTANT: You MUST include a JSON diagram for every Boolean function or logic circuit question. If the question asks about a logic circuit, Boolean function, or digital logic, you MUST provide a diagram.
+  // Dynamic context awareness
+  const constraintText =
+    constraints && constraints.length > 0
+      ? `\n🧩 Follow these constraints strictly: ${constraints.join(", ")}.`
+      : "";
 
-Formatting Rules:
+  const diagramText = requiresDiagram || topic === "boolean"
+    ? `\n📊 ${topic === "boolean" ? "Always" : "The question requires"} generate a valid React Flow JSON diagram code block (\`\`\`json\`\`\`) showing nodes and edges labeled appropriately. For Boolean logic, include diagram JSON at the end with:
+- Input nodes: label "INPUT" or single letters like "A", "B", "C"
+- Output nodes: label "OUTPUT" or output names like "F", "D"
+- Gate nodes: exact labels "AND", "OR", "XOR", "NOT", "NAND", "NOR"
+- Position nodes left to right: inputs (x: 100), gates (x: 300-400), outputs (x: 500+)
+- Space vertically: inputs at y: 100, 200, 300, etc.`
+    : "";
 
-1. **All math must be written in LaTeX syntax inside math mode.**
-   - Inline math: $E = mc^2$
-   - Block math: 
-     $$
-     F = \\overline{A}\\overline{B}C + ABC'
-     $$
+  // Dynamic format layout
+  const sectionList = (structure || ["Overview", "Explanation", "Summary"]).map((s, i) => `${i + 1}. **${s}**`).join("\n");
 
-2. Use correct LaTeX commands:
-   - Σ (Sigma): \\Sigma
-   - Π (Pi): \\Pi
-   - Multiplication / AND: \\cdot
-   - NOT / complement: \\overline{}
-   - Text in math: ALWAYS use \\mathrm{} for text inside math (e.g., \\mathrm{B_o} NOT \\text{B_o})
-   - Subscripts: Use underscore (e.g., B_o, A_1, F_{out})
-   - CRITICAL: Never use \\text{} - it causes rendering errors. Always use \\mathrm{} inside math blocks.
+  // Language description for programming
+  const langDesc = language
+    ? `in **${language.toUpperCase()}**`
+    : `in the most suitable programming language`;
 
-3. Always wrap the entire answer inside a markdown code block:
+  const codeLang = language || "java";
 
-   \`\`\`markdown
-   <markdown content here>
-   \`\`\`
+  // Build intelligent prompt
+  const prompt = `${toneRules}
 
-4. Do **not** use words like "Sigma" or "Pi" — always use LaTeX symbols.
+### Task
 
-5. Use proper Markdown tables (| A | B | C | F |).
+Understand the question and provide a concise, well-formatted answer.
 
-6. Include equations and expressions using double-dollar blocks for readability.
+### Question
 
-MANDATORY Diagram Rules - JSON Format:
-- You MUST include a \`\`\`json code block with the diagram structure
-- The JSON must be a valid object with "nodes" and "edges" arrays
-- Nodes represent inputs, gates, and outputs
-- Edges connect nodes using "source" and "target" IDs
-- Place the diagram JSON at the END of your answer, after all explanations
+${question}
 
-Node Label Rules:
-- Input nodes: Use "INPUT" as label, or single letters like "A", "B", "C" (will be rendered as blue circles)
-- Output nodes: Use "OUTPUT" as label, or output names like "F", "D", "Borrow" (will be rendered as green triangles)
-- Gate nodes: Use gate names exactly as "AND", "OR", "XOR", "NOT", "NAND", "NOR" (will be rendered with gate icons)
+### Analysis
 
-Diagram JSON Structure:
-{
-  "nodes": [
-    { "id": "A", "data": { "label": "INPUT" }, "position": { "x": 100, "y": 100 } },
-    { "id": "B", "data": { "label": "INPUT" }, "position": { "x": 100, "y": 200 } },
-    { "id": "AND1", "data": { "label": "AND" }, "position": { "x": 300, "y": 150 } },
-    { "id": "F", "data": { "label": "OUTPUT" }, "position": { "x": 500, "y": 150 } }
-  ],
-  "edges": [
-    { "id": "e1", "source": "A", "target": "AND1" },
-    { "id": "e2", "source": "B", "target": "AND1" },
-    { "id": "e3", "source": "AND1", "target": "F" }
-  ]
-}
+- Topic: ${topic}
+- Language: ${language || "auto-detect"}
+- Constraints: ${constraints && constraints.length > 0 ? constraints.join(", ") : "none"}
+- Requires Diagram: ${requiresDiagram || topic === "boolean" ? "Yes" : "No"}
 
-Position Guidelines:
-- Arrange nodes left to right: inputs (x: 100), gates (x: 300-400), outputs (x: 500+)
-- Vertically space nodes: inputs at y: 100, 200, 300, etc.
-- Gates should be positioned between inputs and outputs
-- Space nodes vertically to avoid overlap (minimum 100 pixels apart)
+### Output Format
 
-Visual Guide:
-- Input nodes: Blue circles (use label "INPUT" or single letter like "A")
-- Output nodes: Green triangles (use label "OUTPUT" or output name)
-- AND gates: Blue rectangular gate icon
-- OR gates: Orange curved gate icon
-- XOR gates: Purple curved gate icon with double line
-- NOT gates: Green triangular gate icon with circle
+${sectionList}
 
-Example for Half Subtractor:
-\`\`\`json
-{
-  "nodes": [
-    { "id": "A", "data": { "label": "INPUT" }, "position": { "x": 100, "y": 100 } },
-    { "id": "B", "data": { "label": "INPUT" }, "position": { "x": 100, "y": 200 } },
-    { "id": "XOR1", "data": { "label": "XOR" }, "position": { "x": 300, "y": 100 } },
-    { "id": "NOT1", "data": { "label": "NOT" }, "position": { "x": 300, "y": 250 } },
-    { "id": "AND1", "data": { "label": "AND" }, "position": { "x": 500, "y": 200 } },
-    { "id": "D", "data": { "label": "OUTPUT" }, "position": { "x": 700, "y": 100 } },
-    { "id": "B_OUT", "data": { "label": "OUTPUT" }, "position": { "x": 700, "y": 200 } }
-  ],
-  "edges": [
-    { "id": "e1", "source": "A", "target": "XOR1" },
-    { "id": "e2", "source": "B", "target": "XOR1" },
-    { "id": "e3", "source": "XOR1", "target": "D" },
-    { "id": "e4", "source": "A", "target": "NOT1" },
-    { "id": "e5", "source": "NOT1", "target": "AND1" },
-    { "id": "e6", "source": "B", "target": "AND1" },
-    { "id": "e7", "source": "AND1", "target": "B_OUT" }
-  ]
-}
-\`\`\`
+📋 Each section should contain only essential, direct content — no filler.
+${topic === "programming" ? `For programming, include complete code blocks using \`\`\`${codeLang}\`\`\`.` : ""}
+${topic === "boolean" ? `For Boolean logic, add truth tables, LaTeX expressions ($...$ or $$...$$), and diagram JSON. Use \\overline{} for NOT, \\cdot for AND, \\mathrm{} for text in math.` : ""}
+${topic === "math" ? `For math, show concise steps and final answer using LaTeX ($...$ or $$...$$).` : ""}
+Use \`\`\`language\`\`\` blocks appropriately.${constraintText}${diagramText}
 
-CRITICAL: 
-- Input nodes must have label "INPUT" (or single letter like "A", "B", "C")
-- Output nodes must have label "OUTPUT" (or output name)
-- Gate nodes must have exact labels: "AND", "OR", "XOR", "NOT", "NAND", "NOR"
-- All node labels are case-sensitive
-
-REMEMBER: Your response must end with a \`\`\`json code block containing the logic circuit diagram structure.
-
-Now generate your answer for: ${question}`;
+Now generate the final answer.`;
 
   const body = {
     contents: [
@@ -168,7 +123,7 @@ Now generate your answer for: ${question}`;
       console.log(`[Gemini API] Response ID: ${data.candidates[0].finishReason}`);
     }
 
-    // Extract markdown from code block - handle nested JSON diagram blocks properly
+    // Extract markdown from code block - handle nested code blocks properly
     let formattedOutput = text;
     
     // Find ```markdown start
@@ -177,36 +132,39 @@ Now generate your answer for: ${question}`;
       const contentStart = markdownStart + 11; // After "```markdown"
       const remaining = text.substring(contentStart);
       
-      // Strategy: Find all ```json blocks and their closings first
-      // Then find the ``` that closes the markdown block (should be after all json blocks)
-      const jsonPattern = /```json[\s\S]*?```/g;
-      const jsonBlocks: Array<{ start: number; end: number }> = [];
+      // Strategy: Find all nested code blocks (```language blocks) and their closings
+      // Then find the ``` that closes the markdown block (should be after all nested blocks)
+      // Match code blocks like ```java, ```python, ```json, etc.
+      const codeBlockPattern = /```[\w]*[\s\S]*?```/g;
+      const codeBlocks: Array<{ start: number; end: number }> = [];
       let match;
       
       // Reset regex
-      jsonPattern.lastIndex = 0;
-      while ((match = jsonPattern.exec(remaining)) !== null) {
-        jsonBlocks.push({
+      codeBlockPattern.lastIndex = 0;
+      while ((match = codeBlockPattern.exec(remaining)) !== null) {
+        // Skip the markdown block itself if it appears
+        if (match[0].startsWith("```markdown")) continue;
+        codeBlocks.push({
           start: match.index,
           end: match.index + match[0].length
         });
       }
       
       // Find the closing ``` for the markdown block
-      // It should be the LAST ``` that appears after all json blocks
-      if (jsonBlocks.length > 0) {
-        // Find the position after the last json block
-        const afterLastJson = jsonBlocks[jsonBlocks.length - 1].end;
-        // Look for the next ``` after the last json block - that should close the markdown block
-        const closingPos = remaining.indexOf("```", afterLastJson);
+      // It should be the LAST ``` that appears after all nested code blocks
+      if (codeBlocks.length > 0) {
+        // Find the position after the last code block
+        const afterLastBlock = codeBlocks[codeBlocks.length - 1].end;
+        // Look for the next ``` after the last code block - that should close the markdown block
+        const closingPos = remaining.indexOf("```", afterLastBlock);
         if (closingPos !== -1) {
           formattedOutput = remaining.substring(0, closingPos).trim();
         } else {
-          // No closing found after json, use everything
+          // No closing found after code blocks, use everything
           formattedOutput = remaining.trim();
         }
       } else {
-        // No json blocks, find first closing ```
+        // No nested code blocks, find first closing ```
         const closingPos = remaining.indexOf("```");
         if (closingPos !== -1) {
           formattedOutput = remaining.substring(0, closingPos).trim();
@@ -222,9 +180,24 @@ Now generate your answer for: ${question}`;
       }
     }
     
-    // Debug: Log if we found a JSON diagram in the output
+    // Debug: Log response details
     console.log("[Gemini API] Raw response length:", text.length);
     console.log("[Gemini API] Formatted output length:", formattedOutput.length);
+    console.log("[Gemini API] Analysis:", {
+      topic,
+      language: language || "auto-detect",
+      constraints: constraints?.length || 0,
+      requiresDiagram: requiresDiagram || topic === "boolean",
+      structure: structure?.join(", ") || "default"
+    });
+    
+    // Check for code blocks in the output
+    const codeBlockMatches = formattedOutput.match(/```[\w]*/g);
+    if (codeBlockMatches) {
+      console.log(`[Gemini API] ✅ Found ${codeBlockMatches.length} code block(s):`, codeBlockMatches);
+    } else {
+      console.log("[Gemini API] ⚠️ No code blocks found in formatted output");
+    }
     
     if (formattedOutput.includes("```json")) {
       console.log("[Gemini API] ✅ Found JSON diagram in response");
@@ -235,14 +208,10 @@ Now generate your answer for: ${question}`;
           console.log(`[Gemini API] Diagram ${idx + 1} preview:`, match.substring(0, 150));
         });
       }
-    } else {
-      console.log("[Gemini API] ⚠️ No JSON diagram found in response");
-      console.log("[Gemini API] Response preview (first 1000 chars):", formattedOutput.substring(0, 1000));
-      // Check if there's any mention of diagram or json in the response
-      if (formattedOutput.toLowerCase().includes("diagram") || formattedOutput.toLowerCase().includes("json")) {
-        console.log("[Gemini API] ⚠️ Response mentions 'diagram' or 'json' but no code block found");
-      }
     }
+    
+    // Log preview of formatted output for debugging
+    console.log("[Gemini API] Formatted output preview (first 500 chars):", formattedOutput.substring(0, 500));
     
     // Extract title from first heading if available, otherwise use question
     const titleMatch = formattedOutput.match(/^#+\s+(.+)$/m);

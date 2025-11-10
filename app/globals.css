@@ -19,6 +19,7 @@ html {
   overflow: hidden;
   margin: 0;
   padding: 0;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 body {
@@ -29,6 +30,7 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-feature-settings: "rlig" 1, "calt" 1;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 #__next {
@@ -42,6 +44,46 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Gradient backgrounds */
+.bg-gradient-light {
+  background: linear-gradient(to bottom, #F9FAFB 0%, #FFFFFF 100%);
+}
+
+.dark .bg-gradient-dark {
+  background: linear-gradient(to bottom, #050505 0%, #000000 100%);
+}
+
+/* Glass morphism effect - Black glass aesthetic */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(13, 13, 13, 0.8);
+}
+
+/* Glow effects */
+.glow-blue {
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.glow-blue-strong {
+  box-shadow: 0 0 16px rgba(30, 64, 255, 0.3), 0 0 4px rgba(30, 64, 255, 0.5) inset;
+}
+
+.active-glow {
+  box-shadow: 0 0 16px rgba(30, 64, 255, 0.3), 0 0 4px rgba(30, 64, 255, 0.5) inset;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 
 /* Markdown Styles - Enhanced with Typography Plugin */
@@ -107,34 +149,79 @@ body {
 }
 
 .prose pre {
-  @apply bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4 border border-gray-700;
+  @apply bg-gray-900 dark:bg-[#0A0A0A] text-white p-4 rounded-lg overflow-x-auto mb-4 border border-[#1C1C1C];
   position: relative;
 }
 
 .prose pre code {
-  @apply bg-transparent p-0 text-gray-100;
-  color: inherit;
+  @apply bg-transparent p-0 text-white;
+  color: #ffffff !important;
   font-size: 0.875rem;
   line-height: 1.6;
 }
 
 /* Syntax highlighting overrides for dark mode */
 .dark .prose pre {
-  @apply bg-gray-950 border-gray-800;
+  @apply bg-[#0A0A0A] border-[#1C1C1C];
 }
 
 .dark .prose pre code {
-  @apply text-gray-100;
+  @apply text-white;
+  color: #ffffff !important;
 }
 
-/* Highlight.js theme adjustments */
+/* Highlight.js theme adjustments - bright colors for visibility */
 .hljs {
   background: transparent !important;
   padding: 0 !important;
+  color: #ffffff !important;
 }
 
 .dark .hljs {
-  color: #e5e7eb !important;
+  color: #ffffff !important;
+}
+
+/* Syntax highlighting colors - bright and visible */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: #60A5FA !important; /* Bright blue */
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute {
+  color: #34D399 !important; /* Bright green */
+}
+
+.hljs-literal,
+.hljs-number,
+.hljs-type {
+  color: #FBBF24 !important; /* Bright yellow */
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion {
+  color: #9CA3AF !important; /* Gray for comments */
+}
+
+.hljs-variable,
+.hljs-template-variable {
+  color: #F472B6 !important; /* Bright pink */
+}
+
+.hljs-function,
+.hljs-title.function_ {
+  color: #A78BFA !important; /* Bright purple */
+}
+
+.hljs-meta,
+.hljs-meta-keyword {
+  color: #FCD34D !important; /* Bright yellow */
 }
 
 .prose strong {

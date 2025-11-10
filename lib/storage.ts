@@ -199,3 +199,28 @@ export async function reorderQuestions(
   project.updatedAt = Date.now();
   await saveProject(project);
 }
+
+/**
+ * Update a question's topic
+ */
+export async function updateQuestionTopic(
+  projectId: string,
+  questionId: string,
+  topic: string | undefined
+): Promise<void> {
+  await requireAuth();
+  
+  const project = await getProject(projectId);
+  if (!project) {
+    throw new Error("Project not found");
+  }
+  
+  const question = project.questions.find((q) => q.id === questionId);
+  if (!question) {
+    throw new Error("Question not found");
+  }
+  
+  question.topic = topic;
+  project.updatedAt = Date.now();
+  await saveProject(project);
+}

@@ -31,45 +31,50 @@ export function ProjectHeader({
   };
 
   return (
-    <div className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6">
+    <header className="sticky top-0 z-50 backdrop-blur-lg bg-[#0A0A0A]/80 dark:bg-[#0A0A0A]/80 border-b border-border-light dark:border-border-dark flex items-center justify-between px-6 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.2)]">
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => router.push("/")}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <Home className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </button>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-          {projectTitle}
-        </h2>
-      </div>
-
-      <div className="flex items-center gap-2">
         <motion.button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push("/");
+          }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          className="p-2 hover:bg-[#111111] dark:hover:bg-[#111111] rounded-xl transition-all duration-300"
+        >
+          <Home className="w-5 h-5 text-gray-400 dark:text-gray-400" />
+        </motion.button>
+        <h1 className="text-lg font-semibold text-gray-100 dark:text-gray-100">
+          {projectTitle}
+        </h1>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleShare}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand-electric to-brand-blue hover:from-brand-blue hover:to-[#60A5FA] text-white rounded-lg transition-all duration-300 text-sm font-medium shadow-[0_0_10px_rgba(30,64,255,0.3)]"
         >
           <Share2 className="w-4 h-4" />
           Share
         </motion.button>
 
         <motion.button
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.05, boxShadow: "0 0 10px rgba(59,130,246,0.2)" }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-2 rounded-xl bg-background-cardDark dark:bg-background-cardDark border border-border-dark dark:border-border-dark hover:shadow-[0_0_10px_rgba(59,130,246,0.2)] transition-all duration-300"
         >
-          {theme === "light" ? (
-            <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          {theme === "dark" ? (
+            <Sun className="w-5 h-5 text-brand-blue dark:text-brand-blue" />
           ) : (
-            <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <Moon className="w-5 h-5 text-brand-electric dark:text-brand-electric" />
           )}
         </motion.button>
 
         <AuthButton />
       </div>
-    </div>
+    </header>
   );
 }

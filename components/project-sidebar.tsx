@@ -122,23 +122,27 @@ export function ProjectSidebar({
   return (
     <>
       {/* Toggle Button - Fixed position, always visible */}
-      <button
+      <motion.button
         onClick={onToggleCollapse}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         className={cn(
-          "fixed top-1/2 z-50 p-2 bg-white dark:bg-gray-900",
-          "border border-gray-200 dark:border-gray-800 rounded-r-full rounded-l-full",
-          "shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300",
+          "fixed top-1/2 z-50 p-2.5 bg-background-cardDark/80 dark:bg-background-cardDark/80 backdrop-blur-xl",
+          "border border-border-light dark:border-border-dark rounded-full",
+          "shadow-[0_4px_20px_rgba(0,0,0,0.3)]",
+          "hover:shadow-[0_0_10px_rgba(59,130,246,0.2)]",
+          "transition-all duration-300",
           "flex items-center justify-center",
           isCollapsed ? "left-2" : "left-[256px]"
         )}
         style={{ transform: "translateY(-50%)" }}
       >
         {isCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-400" />
         ) : (
-          <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          <ChevronLeft className="w-4 h-4 text-gray-400 dark:text-gray-400" />
         )}
-      </button>
+      </motion.button>
 
       {/* Sidebar */}
       <motion.div
@@ -148,8 +152,9 @@ export function ProjectSidebar({
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className={cn(
-          "bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800",
+          "bg-background-cardDark/80 dark:bg-background-cardDark/80 backdrop-blur-xl border-r border-border-light dark:border-border-dark",
           "flex flex-col overflow-hidden flex-shrink-0 h-full",
+          "shadow-[0_4px_20px_rgba(0,0,0,0.3)]",
           isCollapsed ? "w-0" : "w-64"
         )}
       >
@@ -162,62 +167,66 @@ export function ProjectSidebar({
               transition={{ duration: 0.2 }}
               className="flex flex-col h-full w-full"
             >
-              <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  KnowSpark
+              <div className="p-5 border-b border-border-light dark:border-border-dark flex-shrink-0">
+                <h1 className="text-sm font-medium tracking-wider text-gray-400 dark:text-gray-400 mb-1 uppercase">
+                  Projects
                 </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Ask smart. Learn beautifully.
-                </p>
               </div>
 
               <div className="p-4 flex-shrink-0">
-                <button
+                <motion.button
                   onClick={handleCreateProject}
-                  className="w-full flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand-electric to-brand-blue hover:from-brand-blue hover:to-[#60A5FA] text-white rounded-lg font-medium transition-all duration-300 shadow-[0_0_10px_rgba(30,64,255,0.3)]"
                 >
                   <Plus className="w-4 h-4" />
                   New Project
-                </button>
+                </motion.button>
               </div>
 
               <div className="flex-1 overflow-y-auto px-2 min-h-0">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <Loader2 className="w-5 h-5 animate-spin text-text-mutedLight dark:text-text-mutedDark" />
                   </div>
                 ) : !user ? (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8 px-4">
+                  <div className="text-center text-gray-400 dark:text-gray-400 text-sm mt-8 px-4">
                     <p className="mb-4">Please sign in to view your projects</p>
-                    <button
+                    <motion.button
                       onClick={() => router.push("/auth/login")}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="px-4 py-2 bg-gradient-to-r from-brand-electric to-brand-blue hover:from-brand-blue hover:to-[#60A5FA] text-white rounded-lg text-sm transition-all duration-300 shadow-[0_0_10px_rgba(30,64,255,0.3)]"
                     >
                       Sign In
-                    </button>
+                    </motion.button>
                   </div>
                 ) : projects.length === 0 ? (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
+                  <div className="text-center text-gray-400 dark:text-gray-400 text-sm mt-8 px-4">
                     No projects yet. Create one to get started!
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-2 px-2">
                     {projects.map((project) => (
                       <motion.div
                         key={project.id}
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.01, x: 2 }}
                         whileTap={{ scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
                       >
                         <div
-                          onClick={() => router.push(`/${project.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/${project.id}`);
+                          }}
                           className={cn(
-                            "flex items-center gap-2 p-3 rounded-lg cursor-pointer group",
-                            "hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
-                            currentProjectId === project.id &&
-                              "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                            "block w-full text-left px-4 py-2 mb-2 rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer group",
+                            currentProjectId === project.id
+                              ? "bg-[#111111] dark:bg-[#111111] text-brand-blue shadow-[0_0_12px_rgba(59,130,246,0.25)]"
+                              : "hover:bg-[#111111]/60 dark:hover:bg-[#111111]/60 text-gray-300 dark:text-gray-300"
                           )}
                         >
-                          <Folder className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                           {editingId === project.id ? (
                             <div className="flex-1 flex items-center gap-2">
                               <input
@@ -231,46 +240,57 @@ export function ProjectSidebar({
                                     handleCancelEdit();
                                   }
                                 }}
-                                className="flex-1 px-2 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded"
+                                className="flex-1 px-2 py-1 text-sm bg-background-cardDark dark:bg-background-cardDark border border-border-dark dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-200 dark:text-gray-200"
                                 autoFocus
                               />
-                              <button
+                              <motion.button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleSaveEdit(project.id);
                                 }}
-                                className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
                               >
                                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                              </button>
-                              <button
+                              </motion.button>
+                              <motion.button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleCancelEdit();
                                 }}
-                                className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                               >
                                 <X className="w-4 h-4 text-red-600 dark:text-red-400" />
-                              </button>
+                              </motion.button>
                             </div>
                           ) : (
                             <>
-                              <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
-                                {project.title}
-                              </span>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
+                              <div className="flex items-center gap-2">
+                                <Folder className="w-4 h-4 text-gray-400 dark:text-gray-400 flex-shrink-0" />
+                                <span className="flex-1 text-sm truncate">
+                                  {project.title}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <motion.button
                                   onClick={(e) => handleStartEdit(project, e)}
-                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 hover:bg-[#111111] dark:hover:bg-[#111111] rounded-lg transition-colors"
                                 >
-                                  <Edit2 className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                                </button>
-                                <button
+                                  <Edit2 className="w-3 h-3 text-gray-400 dark:text-gray-400" />
+                                </motion.button>
+                                <motion.button
                                   onClick={(e) => handleDeleteProject(project.id, e)}
-                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 hover:bg-[#111111] dark:hover:bg-[#111111] rounded-lg transition-colors"
                                 >
-                                  <Trash2 className="w-3 h-3 text-red-500 dark:text-red-400" />
-                                </button>
+                                  <Trash2 className="w-3 h-3 text-red-400 dark:text-red-400" />
+                                </motion.button>
                               </div>
                             </>
                           )}
